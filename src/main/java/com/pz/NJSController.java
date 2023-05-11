@@ -1,8 +1,15 @@
 package com.pz;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
+import java.nio.file.Path;
+
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.handler.AbstractDetectingUrlHandlerMapping;
@@ -24,8 +31,8 @@ public class NJSController {
 	@RequestMapping({ basePaths })
 	public String tools(@PathVariable(name = "title") String title) {
 		log.info("tools path " + title);
-		AbstractDetectingUrlHandlerMapping d;
-		return "posts/[post]";
+//		AbstractDetectingUrlHandlerMapping d;
+		return "category/[category]";
 	}
 
 	@RequestMapping("{path}")
@@ -39,6 +46,31 @@ public class NJSController {
 		String path = request.getRequestURI();
 		log.info("path " + path);
 		path = path.replace("/PZ", "");
+		try {
+			File staticDir = ResourceUtils.getFile("classpath:static");
+			String _path = path.startsWith("/") ? path.substring(1) : path;
+			Path filePath = staticDir.toPath().resolve(_path + ".html");
+			File file = filePath.toFile();
+			if (!file.exists()) {
+				String strFilePath = file.getAbsolutePath();
+				strFilePath = FilenameUtils.getBaseName(strFilePath);
+				File dir = file.getParentFile();
+				File[] files = dir.listFiles(new FilenameFilter() {
+					public boolean accept(File dir, String name) {
+						return name.contains("[") && name.contains("]");
+					}
+				});
+				if (files.length == 1) {
+					File matchedFile = files[0];
+					String fileName = FilenameUtils.getBaseName(matchedFile.getAbsolutePath());
+					path = path.replace(strFilePath, fileName);
+
+				}
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
 		return path;
 	}
 
@@ -49,7 +81,22 @@ public class NJSController {
 //		r = r.substring(1);
 //		return r;
 //	}
+	public int nthOccurrence(String str1, String str2, int n) {
 
+		String tempStr = str1;
+		int tempIndex = -1;
+		int finalIndex = 0;
+		for (int occurrence = 0; occurrence < n; ++occurrence) {
+			tempIndex = tempStr.indexOf(str2);
+			if (tempIndex == -1) {
+				finalIndex = 0;
+				break;
+			}
+			tempStr = tempStr.substring(++tempIndex);
+			finalIndex += tempIndex;
+		}
+		return --finalIndex;
+	}
 
 	public String getFullURL(HttpServletRequest request) {
 		StringBuilder requestURL = new StringBuilder(request.getRequestURL().toString());
